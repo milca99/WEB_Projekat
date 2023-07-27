@@ -1,0 +1,242 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" href="StyleSheet.css">
+    <script src="Scripts/jquery-3.4.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            loadStudents();
+
+            $(document).on('click', '.btnDlt', function () {
+                let idOfStudent = $(this).attr("id");
+                $.ajax({
+                    url: '/api/admins/DeleteStudent/' + idOfStudent,
+                    type: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                    dataType: 'json',
+                    success: function (data) {
+                        alert('Uspesno ste izbrisali studenta.');
+                        loadStudents();
+                    }, error: function (xhr, ajaxOptions, thrownError) {
+                        if (xhr.status == 400) {
+                            let errmsg = JSON.parse(xhr.responseText);
+                            let msg = errmsg.Message;
+                            alert(msg);
+                        }
+                        else if (xhr.status == 401)
+                            alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i student');
+                        else if (xhr.status == 404)
+                            alert('Ispit koji ste pokusali prijaviti je zavrsen!');
+                        else if (xhr.status == 409)
+                            alert('Ispit koji ste pokusali prijaviti je vec prijavljen!');
+                        else
+                            alert('Error: ' + JSON.stringify(xhr));
+                    }
+                });
+            });
+
+            $('#btnLogOut').click(function () {
+                let logedUser = sessionStorage.getItem("user");
+                if (logedUser == null || logedUser == '') {
+                    alert('Niste ulogovani!');
+                    return;
+                }
+                sessionStorage["user"] = "";
+                sessionStorage["jwtToken"] = "";
+                window.location.assign("../index.html");
+                alert('Uspesno ste izlogovani');
+            });
+
+            $(document).on('click', '.btnModify', function () {
+                console.log('USAO U FUNKCIJU')
+                let idOfButton = $(this).attr("id");
+                let username = document.getElementById(idOfButton + '|us').value;
+                let password = document.getElementById(idOfButton + '|s').value;
+                let name = document.getElementById(idOfButton + '|nm').value;
+                let lastname = document.getElementById(idOfButton + '|ln').value;
+                let bdate = document.getElementById(idOfButton + '|dt').value;
+                let email = document.getElementById(idOfButton + '|m').value;
+                var dateBdy = new Date(bdate);
+                var currentDate = new Date(Date.now());
+
+                console.log(username);
+                console.log(name);
+                console.log(lastname);
+
+                if (username.length === 0 || name.length === 0 || lastname.length === 0 || bdate.length === 0 || email.length === 0) {
+                    alert("Sva polja moraju biti popunjena!");
+                    return;
+                } else if (email.split('@').length === 1 || email.split('.').length === 1) {
+                    alert("E-mail mora biti u formatu ime@mail.com !");
+                    return;
+                } else if (currentDate.getTime() - dateBdy.getTime() <= 0) {
+                    alert("Datum rodjenja mora stariji od danasnjeg datuma !")
+                    return;
+                }
+                console.log('userName ' + username + ' password ' + password + ' name '+ name, ' lastName '+ lastname + ' email ' + email+ ' birthday '+ bdate+ ' deleted ' + false)
+                $.ajax({
+                    url: '/api/admins/ModifyStudent',
+                    type: 'PUT',
+                    data: { 'userName': username, 'password': password, 'name': name, 'lastName': lastname, 'email': email, 'birthday': bdate, 'deleted': false },
+                    headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                    dataType: 'json',
+                    success: function (data) {
+                        alert('Uspesno ste modifikovali ispit.');
+                    }, error: function (xhr, ajaxOptions, thrownError) {
+                        if (xhr.status == 400) {
+                            alert(xhr.responseText);
+                        }
+                        else if (xhr.status == 401)
+                            alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i admin');
+                        else if (xhr.status == 404)
+                            alert(xhr.responseText);
+                        else if (xhr.status == 409)
+                            alert('Email vec postoji!');
+                        else
+                            alert('Error: ' + JSON.stringify(xhr));
+                    }
+                });
+
+                
+            });
+
+            $(document).on('click', '.btnAddStudent', function () {
+                let username = $('#addUsername').val();
+                let password = $('#addPassword').val();
+                let name = $('#addName').val();
+                let lastname = $('#addLastname').val();
+                let bdate = $('#addBirthday').val();
+                let email = $('#addEmail').val();
+                let index = $('#addIndex').val();
+
+                var dateBdy = new Date(bdate);
+                var currentDate = new Date(Date.now());
+
+                console.log(username);
+                console.log(name);
+                console.log(lastname);
+
+                if (username.length === 0 || password.length === 0 || name.length === 0 || lastname.length === 0 || bdate.length === 0 || email.length === 0 || index.length===0) {
+                    alert("Sva polja moraju biti popunjena!");
+                    return;
+                } else if (email.split('@').length === 1 || email.split('.').length === 1) {
+                    alert("E-mail mora biti u formatu ime@mail.com !");
+                    return;
+                } else if (currentDate.getTime() - dateBdy.getTime() <= 0) {
+                    alert("Datum rodjenja mora stariji od danasnjeg datuma !")
+                    return;
+                }
+                console.log('userName ' + username + ' password ' + password + ' name ' + name, ' lastName ' + lastname + ' email ' + email + ' birthday ' + bdate + 'IndexNumber ' + index + ' deleted ' + false)
+                $.ajax({
+                    url: '/api/admins/SaveStudent',
+                    type: 'POST',
+                    data: { 'userName': username, 'password': password, 'name': name, 'lastName': lastname, 'email': email, 'birthday': bdate, 'IndexNumber': index, 'deleted': false },
+                    headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                    dataType: 'json',
+                    success: function (data) {
+                        alert('Uspesno ste dodali studenta.');
+                        loadStudents();
+                        $('#addUsername').val("");
+                        $('#addPassword').val("");
+                        $('#addName').val("");
+                        $('#addLastname').val("");
+                        $('#addBirthday').val("");
+                        $('#addEmail').val("");
+                        $('#addIndex').val("");
+                    }, error: function (xhr, ajaxOptions, thrownError) {
+                        if (xhr.status == 400) {
+                            alert(xhr.responseText);
+                        }
+                        else if (xhr.status == 401)
+                            alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i admin');
+                        else if (xhr.status == 404)
+                            alert(xhr.responseText);
+                        else if (xhr.status == 409)
+                            alert('Email vec postoji!');
+                        else
+                            alert('Error: ' + JSON.stringify(xhr));
+                    }
+                });
+
+
+            });
+        });
+        function loadStudents() {
+            console.log('loading students...');
+            $.ajax({
+                url: '/api/admins/GetStudents',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                dataType: 'json',
+                success: function (data, status) {
+                    let tableOfStudents = $('#tableAllStudents');
+                    $("tr").remove(".canDeleteStu");
+                    for (element in data) {
+                        let newRow = document.createElement("tr");
+                        let splitDate = data[element].Birthday.split('T');
+                        newRow.className = "canDeleteStu";
+                        newRow.innerHTML = '<td><input type="text" readonly id = "' + data[element].UserName + '|us" value="' + data[element].UserName + '"/></td>';
+                        newRow.innerHTML += '<td><input type="text" readonly id = "' + data[element].UserName + '|ind" value="' + data[element].IndexNumber + '"/></td>';
+                        newRow.innerHTML += '<td><input type="text" id = "' + data[element].UserName + '|s" value="' + data[element].Password + '"/></td>';
+                        newRow.innerHTML += '<td><input type="text" id = "' + data[element].UserName + '|nm" value="' + data[element].Name + '"/></td>';
+                        newRow.innerHTML += '<td><input type="text" id = "' + data[element].UserName + '|ln" value="' + data[element].LastName + '"/></td>';
+                        newRow.innerHTML += '<td><input type="date" id = "' + data[element].UserName + '|dt" value="' + splitDate[0] + '"/></td>';
+                        newRow.innerHTML += '<td><input type="mail" id = "' + data[element].UserName + '|m" value="' + data[element].Email + '"/></td>';
+                        newRow.innerHTML += '<td><button class="btnDlt" name="btnDlt" id="' + data[element].UserName + '">Obrisi</button></td>';
+                        newRow.innerHTML += '<td><button class="btnModify" name="btnModify" id="' + data[element].UserName + '">Izmeni</button></td>';
+
+                        tableOfStudents.append(newRow);
+                    }
+                    console.log('students loaded');
+
+                }, error: function (xhr, ajaxOptions, thrownError) {
+                    if (xhr.status == 400) {
+                        let errmsg = JSON.parse(xhr.responseText);
+                        let msg = errmsg.Message;
+                        alert(msg);
+                    }
+                    else if (xhr.status == 401)
+                        alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i admin');
+                    else
+                        alert('Error: ' + JSON.stringify(xhr));
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div>
+        <table id="tableAllStudents" class="divClassAdmin">
+            <tr class="headerTable"><th colspan="9"> <h3>STUDENTI</h3></th></tr>
+            <tr>
+                <th>Korisnicko ime</th>
+                <th>Broj indeksa</th>
+                <th>Sifra</th>
+                <th>Ime</th>
+                <th>Prezime</th>
+                <th>Datum rodjenja</th>
+                <th>Email</th>
+                <th></th>
+                <th></th>
+            </tr>
+            <tr>
+                <th><input type="text" id="addUsername" /></th>
+                <th><input type="text" id="addIndex" /></th>
+                <th><input type="text" id="addPassword" /></th>
+                <th><input type="text" id="addName" /></th>
+                <th><input type="text" id="addLastname" /></th>
+                <th><input type="date" id="addBirthday" /></th>
+                <th><input type="email" id="addEmail" /></th>
+                <th colspan="2"><button class="btnAddStudent" name="btnAddStudent" id="btnAddStudent">Dodaj</button></th>
+            </tr>
+        </table>
+        <br />
+        <br />
+    </div>
+    <div class="logOutDiv">
+        <button class="buttonClass" id="btnLogOut">LogOut</button>
+    </div>
+</body>
+</html>

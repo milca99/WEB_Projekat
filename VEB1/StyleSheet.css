@@ -1,0 +1,104 @@
+﻿h1 {
+    color: cadetblue;
+    text-align: center;
+}
+
+table, th, td {
+    border: 1px solid;
+    border-color: lightskyblue;
+    text-align: center;
+    background-color: powderblue
+}
+
+body {
+    padding-left: 50px;
+    padding-right: 50px;
+    background-color: darkseagreen;
+}
+
+#studentExamResults {
+    padding-left:25px;
+}
+
+#professorExamResults {
+    padding-left: 37px;
+}
+
+#divRegisterExam {
+    padding-left: 60px;
+}
+
+#logDiv {
+    width: 270px;
+    height: 100px;
+    position: absolute;
+    top: 40%;
+    left: 40%;
+    border-color: cadetblue;
+    border: double;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 10px;
+    background-color: cornflowerblue;
+    align-content: center;
+}
+
+.divClassStudent {
+    width: stretch;
+    height: stretch;
+    position: absolute;
+    top: 20%;
+    left: 35%;
+    border-color: cadetblue;
+    border: double;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: cornflowerblue;
+    align-content: center;
+}
+
+.divClassAdmin {
+    width: stretch;
+    height: stretch;
+    position: absolute;
+    top: 30%;
+    left: 7%;
+    border-color: cadetblue;
+    border: double;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-color: cornflowerblue;
+    align-content: center;
+}
+
+.divClassProf {
+    width: stretch;
+    height: stretch;
+    position: absolute;
+    top: 5%;
+    left: 35%;
+    border-color: cadetblue;
+    border: double;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 30px;
+    padding-bottom: 10px;
+    background-color: cornflowerblue;
+    align-content: center;
+}
+
+.logOutDiv {
+    float: right;
+}
+
+button {
+    background-color: teal;
+    color: white;
+    widows: 100px;
+    height: 25px;
+}
+

@@ -1,0 +1,267 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" href="StyleSheet.css">
+    <script src="Scripts/jquery-3.4.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            loadExamResults();
+            loadGradingExams();
+
+            let today = new Date();
+            today = new Date().toISOString().slice(0, 16);
+            $('#dateTimeReg').attr('min', today);
+
+            $('#btnRegisterExam').click(function () {
+                let su = $('#subjectReg').val();
+                let dat = $('#dateTimeReg').val();
+                let classr = $('#classroomReg').val();
+                let per = $('#periodReg').val();
+
+                var dateEx = new Date(dat);
+                var currentDate = new Date(Date.now());
+
+                if (su.length === 0 || dat.length === 0 || classr.length === 0 || per.length === 0) {
+                    alert("Sva polja moraju biti popunjena!");
+                    return;
+                } else if (dateEx.getTime() - currentDate.getTime() <= 0) {
+                    alert("Ispit se moze zakazati samo za buduce termine!")
+                    return;
+                }
+
+
+                $.ajax({
+                    url: '/api/professors',
+                    type: 'POST',
+                    data: { 'examId': -1, 'professor': '', 'subject': su, 'classroom': classr, 'examPeriod': per, 'dateOfExam': dat },
+                    headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                    dataType: 'json',
+                    success: function (data) {
+                        alert('Ispit je kreiran.');
+                        $('#subjectReg').val("");
+                        $('#dateTimeReg').val("");
+                        $('#classroomReg').val("");
+                        $('#periodReg').val("");
+                    }, error: function (xhr, ajaxOptions, thrownError) {
+                        if (xhr.status == 404)
+                            alert(xhr.responseText);
+                        else if (xhr.status == 409)
+                            alert('Uneli ste pogresan predmet! Mozete zakazati ispite samo za predmete koje predajete!');
+                        else
+                            alert(xhr.responseText);
+                    }
+                });
+
+            });
+
+            $('#btnLogOut').click(function () {
+                let logedUser = sessionStorage.getItem("user");
+                if (logedUser == null || logedUser == '') {
+                    alert('Niste ulogovani!');
+                    return;
+                }
+                sessionStorage["user"] = "";
+                sessionStorage["jwtToken"] = "";
+                window.location.assign("../index.html");
+                alert('Uspesno ste izlogovani');
+            });
+
+            $(document).on('click', '.btnGrading', function () {
+                let idOfButton = $(this).attr("id");
+                let parts = idOfButton.split('|');
+                console.log(idOfButton);
+                let idOfTxt = parts[0] + '|' + parts[1] + '|t';
+                let gradeOfEx = document.getElementById(idOfTxt).value;
+                if (gradeOfEx === 0) {
+                    alert('Morate uneti ocenu!');
+                    return;
+                }
+                if (gradeOfEx < 5 || gradeOfEx > 10) {
+                    alert('Ocena treba biti u opsegu 5-10');
+                    return;
+                }
+                $.ajax({
+                    url: '/api/professors/GradeExam',
+                    type: 'POST',
+                    data: { 'exam': parts[0], 'student': parts[1], 'grade': gradeOfEx },
+                    headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                    dataType: 'json',
+                    success: function (data) {
+                        alert('Uspesno ste ocenili ispit.');
+                    }, error: function (xhr, ajaxOptions, thrownError) {
+                        if (xhr.status == 400) {
+                            let errmsg = JSON.parse(xhr.responseText);
+                            let msg = errmsg.Message;
+                            alert(msg);
+                        }
+                        else if (xhr.status == 401)
+                            alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i profesor');
+                        else if (xhr.status == 404)
+                            alert(xhr.responseText);
+                        else if (xhr.status == 409)
+                            alert('Ispit je vec ocenjen!');
+                        else
+                            alert('Error: ' + JSON.stringify(xhr));
+                    }
+                });
+            });
+        });
+
+        function loadExamResults() {
+            console.log('loading examResults...');
+            $.ajax({
+                url: '/api/professors/GetExamResults',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                dataType: 'json',
+                success: function (data, status) {
+                    let tableOfExamResults = $('#tableProfessorExamResults');
+                    $("tr").remove(".canDeleteRes");
+                    console.log(data);
+                    //console.log(data['m_Item1']);
+                    //console.log(data['m_Item2']);
+                    for (index in data['m_Item1']) {
+                        console.log(index)
+                        let splitDate = data['m_Item2'][index].DateOfExam.split('T');
+                        let newRow = document.createElement("tr");
+                        newRow.className = "canDeleteRes";
+                        newRow.innerHTML = '<td>' + data['m_Item1'][index].Exam + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item2'][index].Subject + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item2'][index].Professor + '</td>';
+                        newRow.innerHTML += '<td>' + splitDate[0] + ' ' + splitDate[1] + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item1'][index].Student + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item1'][index].Grade + '</td>';
+
+                        tableOfExamResults.append(newRow);
+
+                    }
+                    console.log('examResults loaded');
+                }, error: function (xhr, ajaxOptions, thrownError) {
+                    if (xhr.status == 400) {
+                        let errmsg = JSON.parse(xhr.responseText);
+                        let msg = errmsg.Message;
+                        alert(msg);
+                    }
+                    else if (xhr.status == 401)
+                        alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i profesor');
+                    else
+                        alert('Error: ' + JSON.stringify(xhr));
+                }
+            });
+        }
+
+        function loadGradingExams() {
+            console.log('loading examGrading...');
+            $.ajax({
+                url: '/api/professors/GetExamsToGrade',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                dataType: 'json',
+                success: function (data, status) {
+                    let tableOfGrading = $('#tableGradeExams');
+                    $("tr").remove(".canDeleteGr");
+                    console.log(data);
+                    //console.log(data['m_Item1']);
+                    //console.log(data['m_Item2']);
+                    for (index in data['m_Item2']) {
+                        console.log(index)
+                        let splitDate = data['m_Item2'][index].DateOfExam.split('T');
+                        let newRow = document.createElement("tr");
+                        newRow.className = "canDeleteGr";
+                        newRow.innerHTML = '<td>' + data['m_Item2'][index].ExamId + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item2'][index].Subject + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item2'][index].Professor + '</td>';
+                        newRow.innerHTML += '<td>' + splitDate[0] + ' ' + splitDate[1] + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item1'][index] + '</td>';
+                        newRow.innerHTML += '<td><input type="number" min="5" max="10" id="' + data['m_Item2'][index].ExamId + '|' + data['m_Item1'][index] + '|t" /></td>';
+                        newRow.innerHTML += '<td><button class="btnGrading" name="btnGrading" id="' + data['m_Item2'][index].ExamId + '|' + data['m_Item1'][index] + '|d">Oceni</button></td>';
+                        tableOfGrading.append(newRow);
+
+                    }
+                    console.log('examResults loaded');
+                }, error: function (xhr, ajaxOptions, thrownError) {
+                    if (xhr.status == 400) {
+                        let errmsg = JSON.parse(xhr.responseText);
+                        let msg = errmsg.Message;
+                        alert(msg);
+                    }
+                    else if (xhr.status == 401)
+                        alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i student');
+                    else
+                        alert('Error: ' + JSON.stringify(xhr));
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="divClassProf">
+        <div id="professorExamResults">
+            <table id="tableProfessorExamResults">
+                <tr class="headerTable"><th colspan="6"> <h3>REZULTATI ISPITA</h3></th></tr>
+                <tr>
+                    <th>Ispit</th>
+                    <th>Predmet</th>
+                    <th>Profesor</th>
+                    <th>Datum</th>
+                    <th>Student</th>
+                    <th>Ocena</th>
+                </tr>
+            </table>
+            <br />
+            <br />
+        </div>
+
+        <div id="divRegisterExam" class="regLog">
+            <table id="tableRegisterExam">
+                <tr class="headerTable"><th colspan="2"> <h3>KREIRANJE ISPITA</h3></th></tr>
+                <tr>
+                    <td>Predmet:</td>
+                    <td><input type="text" id="subjectReg" /></td>
+                </tr>
+                <tr>
+                    <td>Datum i vreme odrzavanje:</td>
+                    <td><input type="datetime-local" id="dateTimeReg" name="dateTimeReg" /></td>
+                </tr>
+                <tr>
+                    <td>Ucionica:</td>
+                    <td><input type="text" id="classroomReg" /></td>
+                </tr>
+                <tr>
+                    <td>Ispitni rok:</td>
+                    <td><input type="text" id="periodReg" /></td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center">
+                        <button id="btnRegisterExam">Kreiraj</button>
+                    </td>
+                </tr>
+            </table>
+            <br />
+            <br />
+        </div>
+
+        <div id="professorGradeExams">
+            <table id="tableGradeExams">
+                <tr class="headerTable"><th colspan="7"> <h3>OCENITE ISPIT</h3></th></tr>
+                <tr>
+                    <th>Ispit</th>
+                    <th>Predmet</th>
+                    <th>Profesor</th>
+                    <th>Datum</th>
+                    <th>Student</th>
+                    <th>Ocena</th>
+                    <th></th>
+                </tr>
+            </table>
+            <br />
+            <br />
+        </div>
+    </div>
+    <div class="logOutDiv">
+        <button class="buttonClass" id="btnLogOut">LogOut</button>
+    </div>
+</body>
+</html>

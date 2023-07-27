@@ -1,0 +1,174 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" href="StyleSheet.css">
+    <script src="Scripts/jquery-3.4.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            loadExams();
+            loadExamResults();
+
+            $(document).on('click', '.btnRegisterEx', function () {
+                let idOfExam = $(this).attr("id");
+                $.ajax({
+                    url: '/api/students/RegisterExam/' + idOfExam,
+                    type: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                    dataType: 'json',
+                    success: function (data) {
+                        alert('Uspesno ste prijavili ispit.');
+                    }, error: function (xhr, ajaxOptions, thrownError) {
+                        if (xhr.status == 400) {
+                            let errmsg = JSON.parse(xhr.responseText);
+                            let msg = errmsg.Message;
+                            alert(msg);
+                        }
+                        else if (xhr.status == 401)
+                            alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i student');
+                        else if (xhr.status == 404)
+                            alert('Ispit koji ste pokusali prijaviti je zavrsen!');
+                        else if (xhr.status == 409)
+                            alert('Ispit koji ste pokusali prijaviti je vec prijavljen!');
+                        else
+                            alert('Error: ' + JSON.stringify(xhr));
+                    }
+                });
+            });
+
+            $('#btnLogOut').click(function () {
+                let logedUser = sessionStorage.getItem("user");
+                if (logedUser == null || logedUser == '') {
+                    alert('Niste ulogovani!');
+                    return;
+                }
+                sessionStorage["user"] = "";
+                sessionStorage["jwtToken"] = "";
+                window.location.assign("../index.html");
+                alert('Uspesno ste izlogovani');
+            });
+        });
+
+        function loadExams() {
+            console.log('loading exams...');
+            $.ajax({
+                url: '/api/students',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                dataType: 'json',
+                success: function (data, status) {
+                    let tableOfExams = $('#tableStudentExams');
+                    $("tr").remove(".canDelete");
+                    for (element in data) {
+                        let newRow = document.createElement("tr");
+                        let splitDate = data[element].DateOfExam.split('T');
+                        newRow.className = "canDelete";
+                        newRow.innerHTML = '<td>' + data[element].Professor + '</td>';
+                        newRow.innerHTML += '<td>' + data[element].Subject + '</td>';
+                        newRow.innerHTML += '<td>' + data[element].Classroom + '</td>';
+                        newRow.innerHTML += '<td>' + data[element].ExamPeriod + '</td>';
+                        newRow.innerHTML += '<td>' + splitDate[0] + ' ' + splitDate[1] + '</td>';
+                        newRow.innerHTML += '<td><button class="btnRegisterEx" name="btnRegEx" id="' + data[element].ExamId + '">Prijavi</button></td>';
+
+                        tableOfExams.append(newRow);
+                    }
+                    console.log('exams loaded');
+                    
+                }, error: function (xhr, ajaxOptions, thrownError) {
+                    if (xhr.status == 400) {
+                        let errmsg = JSON.parse(xhr.responseText);
+                        let msg = errmsg.Message;
+                        alert(msg);
+                    }
+                    else if (xhr.status == 401)
+                        alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i student');
+                    else
+                        alert('Error: ' + JSON.stringify(xhr));
+                }
+            });
+        }
+
+        function loadExamResults() {
+            console.log('loading examResults...');
+            $.ajax({
+                url: '/api/students/GetExamResults',
+                type: 'GET',
+                headers: { 'Authorization': 'Bearer ' + sessionStorage.getItem("jwtToken") },
+                dataType: 'json',
+                success: function (data, status) {
+                    let tableOfExamResults = $('#tableStudentExamResults');
+                    $("tr").remove(".canDeleteRes");
+                    console.log(data);
+                    //console.log(data['m_Item1']);
+                    //console.log(data['m_Item2']);
+                    for (index in data['m_Item1']) {
+                        console.log(index)
+                        let splitDate = data['m_Item2'][index].DateOfExam.split('T');
+                        let newRow = document.createElement("tr");
+                        newRow.className = "canDeleteRes";
+                        newRow.innerHTML = '<td>' + data['m_Item1'][index].Exam + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item2'][index].Subject + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item2'][index].Professor + '</td>';
+                        newRow.innerHTML += '<td>' + splitDate[0] + ' ' + splitDate[1] + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item1'][index].Student + '</td>';
+                        newRow.innerHTML += '<td>' + data['m_Item1'][index].Grade + '</td>';
+
+                        tableOfExamResults.append(newRow);
+                        
+                    }
+                    console.log('examResults loaded');
+                }, error: function (xhr, ajaxOptions, thrownError) {
+                    if (xhr.status == 400) {
+                        let errmsg = JSON.parse(xhr.responseText);
+                        let msg = errmsg.Message;
+                        alert(msg);
+                    }
+                    else if (xhr.status == 401)
+                        alert('Nije vam dozvoljeno da vrsite ovu akciju. Morate biti prijavljen korisnik i student');
+                    else
+                        alert('Error: ' + JSON.stringify(xhr));
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="divClassStudent">
+        <div id="studentExams">
+            <table id="tableStudentExams">
+                <tr class="headerTable"><th colspan="6"> <h3>LISTA ISPITA</h3></th></tr>
+                <tr>
+                    <th>Profesor</th>
+                    <th>Predmet</th>
+                    <th>Ucionica</th>
+                    <th>Ispitni rok</th>
+                    <th>Datum i vreme</th>
+                    <td width="50"></td>
+                </tr>
+            </table>
+            <br />
+            <br />
+        </div>
+
+        <div id="studentExamResults">
+            <table id="tableStudentExamResults">
+                <tr class="headerTable"><th colspan="6"> <h3>REZULTATI ISPITA</h3></th></tr>
+                <tr>
+                    <th>Ispit</th>
+                    <th>Predmet</th>
+                    <th>Profesor</th>
+                    <th>Datum</th>
+                    <th>Student</th>
+                    <th>Ocena</th>
+                </tr>
+            </table>
+            <br />
+            <br />
+        </div>
+    </div>
+    <div class="logOutDiv">
+        <button class="buttonClass" id="btnLogOut">LogOut</button>
+    </div>
+</body>
+</html>

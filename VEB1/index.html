@@ -1,0 +1,133 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" href="StyleSheet.css">
+    <script src="Scripts/jquery-3.4.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#btnLoging').click(function () {
+                var logedUser = sessionStorage.getItem("user");
+                let un = $('#userNameLog').val();
+                let ps = $('#password').val();
+                if (un.length === 0 || ps.length === 0) {
+                    alert('Sva polja moraju biti popunjena!');
+                    return
+                }
+                if (logedUser == null || logedUser == '') {
+                    $.post('/api/home/LogUser', { 'username': un, 'password': ps }, function (result) {
+                        sessionStorage.setItem("jwtToken", result);
+                        sessionStorage.setItem("user", un);
+
+                        console.log(result);
+
+                        console.log(jwtDecode(result));
+                        var jwtTokenDecoded = jwtDecode(result);
+                        var jsonPayload = JSON.parse(jwtTokenDecoded.payload);
+                        var role = jsonPayload.role;
+                        if (role == 'student')
+                            window.location.assign("../students.html");
+                        else if (role == 'professor')
+                            window.location.assign("../professors.html");
+                        else if (role == 'admin')
+                            window.location.assign("../admins.html");
+                        alert('Korisnik ' + un + ' je uspesno ulogovan.');
+                        document.getElementById('userNameLog').value = "";
+                        document.getElementById('password').value = "";
+                    }).fail(function (errDetail) {
+                        console.log(JSON.stringify(errDetail));
+                        if (errDetail.status == 404)
+                            alert('Korisnik ne postoji!');
+                        else if (errDetail.status == 401)
+                            alert('Blokirani ste na ovoj stranici! Logovanje je neuspijesno.');
+                        else
+                            alert('Error: ' + errDetail.status);
+                    });
+                } else {
+                    alert("Korisnik" + logedUser + "je vec ulogovan.");
+                    document.getElementById('userNameLog').value = "";
+                    document.getElementById('password').value = "";
+                }
+            });
+
+            $('#btnLogOut').click(function () {
+                let logedUser = sessionStorage.getItem("user");
+                if (logedUser == null || logedUser == '') {
+                    alert('Niste ulogovani!');
+                    return;
+                }
+                sessionStorage["user"] = "";
+                sessionStorage["jwtToken"] = "";
+                alert('Uspesno ste izlogovani');
+            });
+        });
+
+        var jwtDecode = function (jwt) {
+
+            function b64DecodeUnicode(str) {
+                return decodeURIComponent(atob(str).replace(/(.)/g, function (m, p) {
+                    var code = p.charCodeAt(0).toString(16).toUpperCase();
+                    if (code.length < 2) {
+                        code = '0' + code;
+                    }
+                    return '%' + code;
+                }));
+            }
+
+            function decode(str) {
+                var output = str.replace(/-/g, "+").replace(/_/g, "/");
+                switch (output.length % 4) {
+                    case 0:
+                        break;
+                    case 2:
+                        output += "==";
+                        break;
+                    case 3:
+                        output += "=";
+                        break;
+                    default:
+                        throw "Illegal base64url string!";
+                }
+
+                try {
+                    return b64DecodeUnicode(output);
+                } catch (err) {
+                    return atob(output);
+                }
+            }
+
+            var jwtArray = jwt.split('.');
+
+            return {
+                header: decode(jwtArray[0]),
+                payload: decode(jwtArray[1]),
+                signature: decode(jwtArray[2])
+            };
+
+        };
+    </script>
+</head>
+<body>
+    <div id="logDiv">
+        <table id="tableLog">
+            <tr>
+                <th>Username:</th>
+                <td><input type="text" id="userNameLog" name="userNameLog" /></td>
+            </tr>
+            <tr>
+                <th>Password:</th>
+                <td><input type="password" id="password" name="password" /></td>
+            </tr>
+            <tr>
+                <td colspan="2" align="center">
+                    <button id="btnLoging" class="buttonClass">LogIn</button>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="logOutDiv">
+        <button class="buttonClass" id="btnLogOut">LogOut</button>
+    </div>
+</body>
+</html>
